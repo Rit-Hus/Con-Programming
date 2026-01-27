@@ -61,6 +61,10 @@ int main(int argc, char *argv[]) {
   pthread_attr_t attr;
   pthread_t workerid[MAXWORKERS];
 
+
+srand(time(NULL));
+
+
   /* set global thread attributes */
   pthread_attr_init(&attr);
   pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);

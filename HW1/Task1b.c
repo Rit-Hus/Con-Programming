@@ -57,6 +57,9 @@ int main(int argc, char *argv[]) {
   pthread_attr_t attr;
   pthread_t workerid[MAXWORKERS];
 
+srand(time(NULL));
+
+
   /* set global thread attributes */
   pthread_attr_init(&attr);
   pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
@@ -118,7 +121,8 @@ globalMax = matrix[0][0]; globalMaxRow = 0; globalMaxCol = 0;
    After a barrier, worker(0) computes and prints the total */
 void *Worker(void *arg) {
   long myid = (long)(intptr_t) arg;
-  int total, i, j, first, last;
+  int  i, j, first, last;
+long long total = 0;
 
 #ifdef DEBUG
   printf("worker %d (pthread id %d) has started\n", myid, pthread_self());
@@ -129,7 +133,6 @@ void *Worker(void *arg) {
   last = (myid == numWorkers - 1) ? (size - 1) : (first + stripSize - 1);
 
   /* sum values in my strip */
-  total = 0;
 
 int localMin = matrix[first][0];
 int localMinRow = first, localMinCol = 0;
