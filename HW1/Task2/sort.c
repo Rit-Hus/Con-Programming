@@ -6,6 +6,16 @@
 #include <stdbool.h>
 
 const int POOLSIZE = 200000;
+const int MAXCOUNT = 4;
+
+volatile int numOfThreads;
+pthread_mutex_t numThreadsMutex;
+
+typedef struct {
+    int* array;
+    int low;
+    int high;
+} argum;
 
 void swap(int* array, int left, int right){
     int temp = array[right];
@@ -15,30 +25,61 @@ void swap(int* array, int left, int right){
 
 int partition(int* array, int low, int high){
     int pivot = array[low];
-    int leftwall = low;
+    int wall = low;
     int i = low + 1;
     while(i <= high){
         if(array[i] < pivot){
-            leftwall++;
-            swap(array, i, leftwall);
+            wall++;
+            swap(array, i, wall);
         }
         i++;
     }
     
-    swap(array, low, leftwall);
+    swap(array, low, wall);
 
-    return leftwall;
+    return wall;
 }
 
 
 
-void quicksort(int* array, int low, int high){
-    if(low < high){
-        int pivot_index = partition(array, low, high);
-        quicksort(array, low, pivot_index - 1);
-        quicksort(array, pivot_index + 1, high);
-    }
+void* quicksort(void* arg){
+ argum* parg = (argum*) arg;
+    argum args = *parg;
+    if(args.low < args.high){
+        int pivot_index = partition(args.array, args.low, args.high);
 
+        argum *thread1arg = malloc(sizeof(argum));
+        argum *thread2arg = malloc(sizeof(argum));
+
+        *thread1arg = (argum) { args.array, args.low, pivot_index - 1 };
+        *thread2arg = (argum) { args.array, pivot_index + 1, args.high };
+
+        pthread_mutex_lock(&numThreadsMutex);
+        if(numOfThreads < MAXCOUNT){
+            numOfThreads += 2;
+            pthread_mutex_unlock(&numThreadsMutex);
+
+            pthread_t thread1;
+            pthread_t thread2;
+
+            pthread_create(&thread1, NULL, quicksort, thread1arg);
+            pthread_create(&thread2, NULL, quicksort, thread2arg);
+
+            pthread_join(thread1, NULL);
+            pthread_join(thread2, NULL);
+
+            pthread_mutex_lock(&numThreadsMutex);
+            numOfThreads -= 2;
+            pthread_mutex_unlock(&numThreadsMutex);
+        } else {
+            pthread_mutex_unlock(&numThreadsMutex);
+            quicksort(thread1arg);
+            quicksort(thread2arg);
+        }
+        free(thread1arg);
+        free(thread2arg);
+    }
+    return NULL;
 }
 
 double timer() {
@@ -55,16 +96,31 @@ double timer() {
 }
 
 int main(){
-    double start_time, end_time;
+double start_time, end_time;
+    numOfThreads = 1;
+    
+    pthread_mutex_init(&numThreadsMutex, NULL);
     int *unsortedData = malloc(sizeof(int) * POOLSIZE);
-    int i = 0;
+    int i;
     for(i = 0; i < POOLSIZE; i++){
         unsortedData[i] = rand() % 10;
-       
+       // printf("%d: %d\n", i, unsortedData[i]);
     }
+
+    argum *args = malloc(sizeof(argum));
+    *args = (argum) {unsortedData, 0, POOLSIZE - 1};
+
     start_time = timer();
-    quicksort(unsortedData, 0, POOLSIZE -1);
+    pthread_t initialThread;
+    pthread_create(&initialThread, NULL, quicksort, args);
+    pthread_join(initialThread, NULL);
     end_time = timer();
-    printf("The execution time is %lf sec" ,end_time - start_time);
+
+    printf("The execution time is %g sec\n", end_time - start_time);
+
+    pthread_mutex_destroy(&numThreadsMutex);
+    free(unsortedData);
+    free(args);
+
     return 0;
 }
