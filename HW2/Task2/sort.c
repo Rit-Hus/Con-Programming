@@ -6,9 +6,8 @@
 #include <stdbool.h>
 
 const int THRESHOLD = 1000;  
-const int POOLSIZE = 1000000;
+const int POOLSIZE = 500000; // Fixed space in number
 const int MAXCOUNT = 8;
-
 
 void swap(int* array, int left, int right){
     int temp = array[right];
@@ -31,9 +30,9 @@ int partition(int* array, int low, int high){
     return wall;
 }
 
-void* quicksort(int* array, int low, int high){
-   
-   if (high - low > THRESHOLD) {
+// Changed to void as discussed - no return needed
+void quicksort(int* array, int low, int high){
+   if (high > low ) {
         int pivot_index = partition(array, low, high);
         if (high - low > THRESHOLD) {
             #pragma omp task
@@ -50,16 +49,19 @@ void* quicksort(int* array, int low, int high){
     }
 }
 
-
 int main(){
     double times[5];
     int *unsortedData = malloc(sizeof(int) * POOLSIZE);
+    
+    int run, j, i, k;
+
     omp_set_num_threads(MAXCOUNT);
     printf("Testing with %d processors and %d elements...\n", MAXCOUNT, POOLSIZE);
 
-    for (int run = 0; run < 5; run++) {
-      
-        for (int i = 0; i < POOLSIZE; i++) unsortedData[i] = rand() % 100000;
+    for (run = 0; run < 5; run++) {
+        for (k = 0; k < POOLSIZE; k++) {
+            unsortedData[k] = rand() % 100000;
+        }
 
         double start_time = omp_get_wtime();
 
@@ -73,16 +75,17 @@ int main(){
         printf("Run %d: %g sec\n", run + 1, times[run]);
     }
 
-    // Sort the 5 times
-    for (int i = 0; i < 4; i++) {
-    for (int j = 0; j < 4 - i; j++) {
-        if (times[j] > times[j + 1]) {
-            double temp = times[j];
-            times[j] = times[j + 1];
-            times[j + 1] = temp;
+    // Sort the 5 times for median
+    for (i = 0; i < 4; i++) {
+        for (j = 0; j < 4 - i; j++) {
+            if (times[j] > times[j + 1]) {
+                double temp = times[j];
+                times[j] = times[j + 1];
+                times[j + 1] = temp;
+            }
         }
     }
-    }
+    
     printf("\nMEDIAN EXECUTION TIME: %g sec\n", times[2]);
     free(unsortedData);
     return 0;
