@@ -6,15 +6,19 @@
 #include <time.h>
 #include <sys/time.h>
 #include <semaphore.h>
+#include <sys/time.h>
+#include <unistd.h>
 
+
+#define H 15
+#define BEES 5
 
 int honeyPot = 0;//current amount of honey in the pot
-int H;  //capacity of the honey pot
 int n;  //number of bees
 
 sem_t pot_mutex;
 sem_t pot_full;
-sem_t pot_available;
+sem_t empty;
 
 
 void* bee(void* arg){
@@ -24,21 +28,19 @@ int id = *(int*)arg;
 while(1){
 
 
-  sem_wait(&pot_available); //wait for the pot to be available
+  sem_wait(&empty); //wait for the pot to be available
 sem_wait(&pot_mutex);
 honeyPot++;   //add honey to the pot
-
+printf("Bee %d added honey. Current honey in the pot: %d\n", id, honeyPot); 
 if(honeyPot == H){  //if the pot is full, wake up the bear
     sem_post(&pot_full);
 }
 
-else{     //if the pot is not full, make it available for other bees
-    sem_post(&pot_available);
-}
-sem_post(&pot_mutex);
+
+sem_post(&pot_mutex);//release the pot for other bees
 
 
-
+ usleep((rand() % 300 + 200) * 1000);
     
 
 
@@ -55,30 +57,82 @@ void* bear(void* arg){
 while(1){
 
 sem_wait(&pot_full);
-printf("Bear is eating honey. Current honey in the pot: %d\n", honeyPot);
+sem_wait(&pot_mutex);
+
+printf("Current honey in the pot: %d,Bear is eating all of the honey. \n", honeyPot);
 honeyPot = 0;
-sem_post(&pot_available);
 
+sem_post(&pot_mutex);
+
+
+for(int i = 0; i < H; i++){   //make the pot available for the bees again
+sem_post(&empty);
+
+}
+ sleep(1);
 
 }
 
+return NULL;
 }
+
+double read_timer() {
+    static bool initialized = false;
+    static struct timeval start;
+    struct timeval end;
+    if( !initialized )
+    {
+        gettimeofday( &start, NULL );
+        initialized = true;
+    }
+    gettimeofday( &end, NULL );
+    return (end.tv_sec - start.tv_sec) + 1.0e-6 * (end.tv_usec - start.tv_usec);
+}
+
+double start_time, end_time;
+
+
+
+
+
+
+
+
+
+
 
 
 int main(int argc, char* argv[]){
 
 
+sem_init(&pot_mutex, 0, 1);
+sem_init(&pot_full, 0, 0);
+sem_init(&empty, 0, H);
 
 
 
 pthread_t bear_thread;
-    pthread_t bee_threads[n];
-    int ids[n];
+    pthread_t bee_threads[BEES];
+    int ids[BEES];
+
+  start_time = read_timer();
+
+    pthread_create(&bear_thread, NULL, bear, NULL);
+
+for(int i = 0; i < BEES; i++){
+
+ids[i] = i + 1;
+pthread_create(&bee_threads[i], NULL, bee, &ids[i]);
 
 
+}
 
 
-return 0;
+pthread_join(bear_thread, NULL);
+    end_time = read_timer();
+printf("Execution time: %g seconds\n", end_time - start_time);
+
+return 0;   
 
 }
 
