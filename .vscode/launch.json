@@ -2,6 +2,13 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "type": "java",
+      "name": "Task6",
+      "request": "launch",
+      "mainClass": "Task6",
+      "projectName": "Con-Programming_8d72b82d"
+    },
+    {
       "name": "C/C++ Runner: Debug Session",
       "type": "cppdbg",
       "request": "launch",

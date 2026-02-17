@@ -1,121 +1,95 @@
-#include <stdint.h>
-#include <pthread.h>
-#include <stdlib.h>
 #include <stdio.h>
-#include <stdbool.h>
-#include <time.h>
-#include <sys/time.h>
+#include <stdlib.h>
+#include <pthread.h>
 #include <semaphore.h>
-#include <sys/time.h>
 #include <unistd.h>
+#include <time.h>
 
+#define BABYBIRDS 5
+#define FOOD 12
+sem_t get_food;
+sem_t find_food;
+sem_t wait_food;
+int food;
 
-#define H 15
-#define BEES 5
+void* babyBird(void* args){
+    int id = *(int*) args;
 
-int honeyPot = 0;//current amount of honey in the pot
-int n;  //number of bees
+    while(1){
+        // Only one bird can check the dish at a time
+        sem_wait(&get_food);
+        
+        printf("Supplies left: %d\n", food);
+        printf("Bird %d looking for sustenance\n", id);
 
-sem_t pot_mutex;
-sem_t pot_full;
-sem_t empty;
+        if(food == 0){
+            printf("Bird %d calls for the father!\n", id);
+            sem_post(&find_food); // Wake up father
+            sem_wait(&wait_food); 
+           
+        }
 
+        // food consumed
+        food--;
+        printf("Bird %d consumes sustenance. Remaining: %d\n", id, food);
 
-void* bee(void* arg){
+        sem_post(&get_food);
 
-int id = *(int*)arg;
+        printf("Bird %d slumbers...\n", id);
+        sleep(rand() % 3 + 1);
+    }
+}
 
-while(1){
+void* papaBird(void* args){
+    while(1){
+        // Wait until a baby chirps
+        sem_wait(&find_food);
+        
+        printf("Father: 'I must gather more food!'\n");
+        sleep(rand() % 3 + 1); 
+        
+        food = FOOD; 
+        printf("Father: 'The supplies are refilled!'\n");
 
-
-  sem_wait(&empty); //wait for the pot to be available
-sem_wait(&pot_mutex);
-honeyPot++;   //add honey to the pot
-printf("Bee %d added honey. Current honey in the pot: %d\n", id, honeyPot); 
-if(honeyPot == H){  //if the pot is full, wake up the bear
-    sem_post(&pot_full);
+        sem_post(&wait_food);
+    }
 }
 
 
-sem_post(&pot_mutex);//release the pot for other bees
 
 
- usleep((rand() % 300 + 200) * 1000);
+int main() {
+    pthread_t babyBirds[BABYBIRDS];
+    pthread_t papa; 
+    food = FOOD;
+
+    // Semaphores
+    sem_init(&get_food, 0, 1);
+    sem_init(&find_food, 0, 0);
+    sem_init(&wait_food, 0, 0);
+
     
+    if (pthread_create(&papa, NULL, papaBird, NULL) != 0) {
+        perror("Failed to create papa bird");
+        return 1;
+    }
 
+    // Create Baby Birds
+    int babyBirdIds[BABYBIRDS];
+    for (int i = 1; i < BABYBIRDS; i++) {
+        babyBirdIds[i] = i ; // Start IDs at 1 for better logs
+        if (pthread_create(&babyBirds[i], NULL, babyBird, &babyBirdIds[i]) != 0) {
+            perror("Failed to create baby bird");
+        }
+    }
 
+    // KEEP MAIN ALIVE
+    pthread_join(papa, NULL);
 
+    // this will never be reached
+    sem_destroy(&get_food);
+    sem_destroy(&find_food);
+    sem_destroy(&wait_food);
+
+    return 0;
 }
-
-return NULL;
-
-}
-
-
-void* bear(void* arg){
-
-while(1){
-
-sem_wait(&pot_full);
-sem_wait(&pot_mutex);
-
-printf("Current honey in the pot: %d,Bear is eating all of the honey. \n", honeyPot);
-honeyPot = 0;
-
-sem_post(&pot_mutex);
-
-
-for(int i = 0; i < H; i++){   //make the pot available for the bees again
-sem_post(&empty);
-
-}
- sleep(1);
-
-}
-
-return NULL;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-int main(int argc, char* argv[]){
-
-
-sem_init(&pot_mutex, 0, 1);
-sem_init(&pot_full, 0, 0);
-sem_init(&empty, 0, H);
-
-
-
-pthread_t bear_thread;
-    pthread_t bee_threads[BEES];
-    int ids[BEES];
-
-
-    pthread_create(&bear_thread, NULL, bear, NULL);
-
-for(int i = 0; i < BEES; i++){
-
-ids[i] = i + 1;
-pthread_create(&bee_threads[i], NULL, bee, &ids[i]);
-
-
-}
-
-
-pthread_join(bear_thread, NULL);
-
-return 0;   
-
-}
-
