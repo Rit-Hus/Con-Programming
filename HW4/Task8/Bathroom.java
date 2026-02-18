@@ -1,81 +1,53 @@
 package HW4.Task8;
 
-import java.util.Random;
-
 public class Bathroom {
 
     private int menCount = 0;
     private int womenCount = 0;
-    private boolean womenAccess = false;
-    private boolean menAccess = false;
 
-    public enum PrevGender {
-        MEN,
-        WOMEN
-    }
-
-    private PrevGender lastGender = PrevGender.MEN;
-
-    public synchronized void manEnter() {
-        while (womenCount > 0 && womenAccess) {
+    public synchronized void manEnter(int id) {
+        System.out.println( " [Man " + id + "]: Waiting to enter the bathroom.");
+        while (womenCount > 0) {
             try {
                 wait();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                if (lastGender == PrevGender.MEN) {
-                    try {
-                        Thread.sleep(1);
-                    } catch (InterruptedException ex) {
-                        Thread.currentThread().interrupt();
-                    }
-                }
             }
         }
-        this.menAccess = true;
         this.menCount++;
-        System.out.println("man count = " + this.menCount + " women count = " + this.womenCount);
+        System.out.println( " [Man " + id + "]: Entered. (Men inside: " + menCount + ")");
     }
 
-    public synchronized void manExit() {
+    public synchronized void manExit(int id) {
         this.menCount--;
+        System.out.println( " [Man " + id + "]: Exited. (Men inside: " + menCount + ")");
         if (this.menCount == 0) {
-            this.menAccess = false;
-            lastGender = PrevGender.MEN; 
             notifyAll();
         }
-        System.out.println("man count = " + this.menCount + " women count = " + this.womenCount);
     }
 
-    public synchronized void womenEnter() {
-        while (menCount > 0 && menAccess) {
+    public synchronized void womenEnter(int id) {
+        System.out.println( " [Woman " + id + "]: Waiting to enter the bathroom.");
+        while (menCount > 0) {
             try {
                 wait();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                if (lastGender == PrevGender.WOMEN) {
-                    try {
-                        Thread.sleep(1);
-                    } catch (InterruptedException ex) {
-                        Thread.currentThread().interrupt();
-                    }
-                }
             }
         }
-        this.womenAccess = true;
         this.womenCount++;
-        System.out.println("man count = " + this.menCount + " women count = " + this.womenCount);
+        System.out.println( " [Woman " + id + "]: Entered. (Women inside: " + womenCount + ")");
     }
 
-    public synchronized void womenExit() {
+    public synchronized void womenExit(int id) {
         this.womenCount--;
+        System.out.println( " [Woman " + id + "]: Exited. (Women inside: " + womenCount + ")");
         if (this.womenCount == 0) {
-            this.womenAccess = false;
             notifyAll();
-            lastGender = PrevGender.WOMEN; 
         }
-        System.out.println("man count = " + this.menCount + " women count = " + this.womenCount);
     }
 
+    
     public static void main(String[] args) {
         Bathroom bathroom = new Bathroom();
 
@@ -88,4 +60,3 @@ public class Bathroom {
         }
     }
 }
-

@@ -3,6 +3,13 @@
   "configurations": [
     {
       "type": "java",
+      "name": "Bathroom",
+      "request": "launch",
+      "mainClass": "HW4.Task8.Bathroom",
+      "projectName": "Con-Programming_272e87ce"
+    },
+    {
+      "type": "java",
       "name": "Task6",
       "request": "launch",
       "mainClass": "Task6",
