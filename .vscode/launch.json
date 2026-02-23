@@ -6,6 +6,13 @@
       "name": "Bathroom",
       "request": "launch",
       "mainClass": "HW4.Task8.Bathroom",
+      "projectName": "Con-Programming_8d72b82d"
+    },
+    {
+      "type": "java",
+      "name": "Bathroom",
+      "request": "launch",
+      "mainClass": "HW4.Task8.Bathroom",
       "projectName": "Con-Programming_272e87ce"
     },
     {
