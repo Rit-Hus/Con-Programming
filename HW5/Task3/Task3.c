@@ -9,6 +9,24 @@
 #define GRANT 2
 #define REL  3
 
+
+
+/*Algorithm: We implement Dining Philosophers with MPI using one server process
+ (rank 0) and five philosopher processes (ranks 1–5). Philosophers alternate 
+ between thinking and eating by sleeping for a random time. When hungry,
+  a philosopher sends a REQ message to the server and blocks waiting for GRANT. 
+  The server manages the table by tracking fork availability in forkFree[5].
+   If both required forks are free, the server marks them as taken and sends GRANT; 
+   otherwise the philosopher is recorded in waitingForks[]. After eating, the philosopher
+    sends REL; the server frees the forks and scans the waiting list to grant any philosopher whose
+     two forks are now free. This avoids deadlock because forks are allocated atomically by the server 
+     (both forks granted together).*/
+
+
+
+
+
+
 void server(int rank, int num_philosophers){
    
    int forkFree[5] = {1, 1, 1, 1, 1};
