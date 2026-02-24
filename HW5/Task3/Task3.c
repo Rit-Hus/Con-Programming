@@ -26,9 +26,9 @@
 
 
 
-
+// Server process
 void server(int rank, int num_philosophers){
-   
+   // Track fork availability and waiting philosophers
    int forkFree[5] = {1, 1, 1, 1, 1};
    int waitingForks[5] = {0, 0, 0, 0, 0};
    
@@ -39,6 +39,7 @@ void server(int rank, int num_philosophers){
 int id;
 MPI_Status status;
 int L, R;
+// Server loop to handle requests and releases
  for(int i = 0; i < num_philosophers * 3 * 2; i++) {
         MPI_Recv(&id, 1, MPI_INT,
                  MPI_ANY_SOURCE,
@@ -53,12 +54,13 @@ fflush(stdout);
  L = id;
 R = (id + 1) % num_philosophers;
 
+// If both forks are free, grant permission; otherwise mark philosopher as waiting
 if(forkFree[L] && forkFree[R]){
 forkFree[L] = 0;
 forkFree[R] = 0;
 
 
-
+// Grant permission to philosopher
 printf("Server grants permission to philosopher %d (rank %d)\n",id, status.MPI_SOURCE);
 fflush(stdout);
 MPI_Send(&id, 1, MPI_INT, status.MPI_SOURCE, GRANT, MPI_COMM_WORLD);
@@ -75,13 +77,18 @@ MPI_Send(&id, 1, MPI_INT, status.MPI_SOURCE, GRANT, MPI_COMM_WORLD);
 
  L = id;
 R = (id + 1) % num_philosophers;
+
+// Free the forks
 forkFree[L] = 1;
 forkFree[R] = 1;
 
 for(int j = 0; j < num_philosophers; j++){
 
+    // Check if philosopher j is waiting and can be granted permission
 int Lj = j;
 int Rj = (j + 1) % num_philosophers;
+
+// If philosopher j is waiting and both forks are free, grant permission
     if(waitingForks[j] && forkFree[Lj] && forkFree[Rj]){
 forkFree[Lj] = 0;
 forkFree[Rj] = 0;
@@ -100,6 +107,7 @@ MPI_Send(&j, 1, MPI_INT, j+1, GRANT, MPI_COMM_WORLD);
 }
  }
 }
+// Philosopher process
 void philosopher(int philospher_id, int num_philosophers){
 
 srand(time(NULL) + philospher_id * 1000);
@@ -125,7 +133,7 @@ printf("Philosopher %d is eating\n", philospher_id);
 fflush(stdout);
 sleep(rand() % 3 + 1);
 
-
+// After eating, send REL to the server
 MPI_Send(&philospher_id, 1, MPI_INT, 0, REL, MPI_COMM_WORLD);
 
     }
@@ -136,13 +144,13 @@ int main(int argc, char *argv[]) {
 
     int rank, size;
 
-
+// Initialize MPI
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
 int num_philosophers = size - 1;
-
+// If rank 0, run server; else run philosopher
     if(rank == 0){
         server(rank, num_philosophers);
     } else {
@@ -150,7 +158,7 @@ int num_philosophers = size - 1;
       
     }
 
-
+// Finalize MPI
 MPI_Finalize();
     return 0;
 
